@@ -1,12 +1,16 @@
 CXX = aarch64-linux-gnu-g++
-AS = aarch64-linux-gnu-as
-LD = aarch64-linux-gnu-ld
+AS  = aarch64-linux-gnu-as
+LD  = aarch64-linux-gnu-ld
 
-CXXFLAGS = -ffreestanding -fno-exceptions -fno-rtti -nostdlib -nostartfiles -nodefaultlibs
-ASFLAGS =
-LDFLAGS = -T linker.ld -nostdlib
+CXXFLAGS = -ffreestanding -fno-exceptions -fno-rtti \
+           -nostdlib -nostartfiles -nodefaultlibs \
+           -mgeneral-regs-only -Wall -Wextra -MMD -MP
+ASFLAGS  =
+LDFLAGS  = -T linker.ld -nostdlib
 
 BUILD = build
+SRCS  = $(wildcard src/*.cpp)
+OBJS  = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SRCS))
 
 all: $(BUILD)/kernel.elf
 
@@ -16,10 +20,10 @@ $(BUILD):
 $(BUILD)/boot.o: boot/boot.S | $(BUILD)
 	$(AS) $(ASFLAGS) $< -o $@
 
-$(BUILD)/kernel.o: src/kernel.cpp | $(BUILD)
+$(BUILD)/%.o: src/%.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(BUILD)/kernel.elf: $(BUILD)/boot.o $(BUILD)/kernel.o
+$(BUILD)/kernel.elf: $(BUILD)/boot.o $(OBJS)
 	$(LD) $(LDFLAGS) $^ -o $@
 
 run: $(BUILD)/kernel.elf
@@ -31,3 +35,7 @@ run: $(BUILD)/kernel.elf
 
 clean:
 	rm -rf $(BUILD)/*
+
+.PHONY: all run clean
+
+-include $(OBJS:.o=.d)
